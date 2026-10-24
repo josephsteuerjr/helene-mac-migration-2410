@@ -1,0 +1,43 @@
+name: Native Mac migration consumer
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  migration:
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      PYTHONUNBUFFERED: '1'
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Driver dependencies only
+        run: |
+          python3 -m pip install psutil playwright
+          python3 -m playwright install chromium
+      - name: Fetch immutable qualified application
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download qualification-base --pattern Helene-2.0.0-macos-arm64.zip --dir "$RUNNER_TEMP/base" --repo "$GITHUB_REPOSITORY"
+      - name: Hash, extract with Unix modes, overlay and qualify
+        run: python3 qualify.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mac-migration-evidence-${{ github.sha }}
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/migration-evidence/
+            ${{ runner.temp }}/qualification.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-migration-package-${{ github.sha }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/Helene-2.0.0-macos-arm64-migration.zip
+            ${{ runner.temp }}/Helene-2.0.0-macos-arm64-migration.zip.sha256
