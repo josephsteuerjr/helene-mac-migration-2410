@@ -71,7 +71,7 @@ class MigrationTests(unittest.TestCase):
             value=json.loads((new/'helene.json').read_text())
             self.assertNotEqual(Path(value['code']),external)
             self.assertEqual((Path(value['code'])/'agent.py').read_text(),'external_self_edit=1')
-            self.assertTrue(Path(value['tree']).is_relative_to(data))
+            self.assertTrue(Path(value['tree']).resolve().is_relative_to(data.resolve()))
 
     def test_explicit_closure_and_real_census_refusal_before_copy(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -148,7 +148,10 @@ with MigrationTests().platform():
             try:
                 end=time.monotonic()+30
                 while not ready.exists() and process.poll() is None and time.monotonic()<end:time.sleep(.05)
-                self.assertTrue(ready.exists(),'snapshot pause not reached')
+                if not ready.exists():
+                    if process.poll() is None:process.kill()
+                    stdout,stderr=process.communicate(timeout=15)
+                    self.fail('snapshot pause not reached; child='+str(process.returncode)+' stdout='+stdout+' stderr='+stderr)
                 self.assertFalse((new/'helene.json').exists())
                 self.assertFalse((new/'python-migration.json').exists())
                 self.assertTrue(list(data.rglob('*.zip.tmp')))

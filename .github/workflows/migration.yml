@@ -32,6 +32,7 @@ jobs:
           retention-days: 7
           path: |
             ${{ runner.temp }}/migration-evidence/
+            ${{ runner.temp }}/qualification-logs/
             ${{ runner.temp }}/qualification.json
       - uses: actions/upload-artifact@v4
         with:

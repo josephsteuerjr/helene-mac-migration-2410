@@ -13,7 +13,7 @@
     "desk/installer/overlay_mac_migration.py": "8faead20c8161d8cbe78615463f8e5148660b8b2be39b4af9edb286f1b70d420",
     "desk/docs/MAC-PYTHON-MIGRATION.md": "50bdbc2f43efae10bc91eeb8e953cc86f964e2c7b58e3344c44acc1e6b333e75",
     "desk/docs/MIGRATION-ENTRY.md": "0de8a7e3cdcecb0d00d43c101ebc0db623a9b686de258c150be89cea59153fbe",
-    "desk/tests/t_mac_migration_2410.py": "e616f6012d5ec10618411774b0c36fb25ea38684e659ca7453b5561ef79bb320",
+    "desk/tests/t_mac_migration_2410.py": "0bf7df8be6ad0d7039a18dc9a0e7b182f4a861c7f61ecb2f38ec93971012c16d",
     "desk/tests/macos_migration_pilot.py": "ba03f1b1b959803d5ff9319523d032827d495f87c1895b2e3c62589029ea8456",
     "desk/localharness/app_components.py": "ece44b39653a861df263a403e45081d103fa875805a3195fa90f1ea85795de22",
     "desk/shell/icons/python-app.png": "c9f9f617290923cf280fa5493da88f54fdc09c8fcb009e90c2eff8f19aafc46d"

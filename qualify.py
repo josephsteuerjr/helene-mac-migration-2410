@@ -30,8 +30,14 @@ archive=TMP/'Helene-2.0.0-macos-arm64-migration.zip'
 subprocess.run([sys.executable,str(ROOT/'desk/installer/overlay_mac_migration.py'),'--program',str(program),'--archive',str(archive)],check=True)
 # Portable test reads real packaged dependencies and tests real killed-process recovery.
 env=dict(os.environ,PYTHONPATH=str(program/'app'))
-subprocess.run([sys.executable,str(ROOT/'desk/tests/t_mac_migration_2410.py'),'-v'],env=env,check=True,cwd=ROOT)
-subprocess.run([sys.executable,str(ROOT/'desk/tests/macos_migration_pilot.py'),'--program',str(program),'--evidence',str(TMP/'migration-evidence')],check=True,cwd=ROOT)
+logs=TMP/'qualification-logs';logs.mkdir()
+with (logs/'focused.log').open('wb') as log:
+    focused=subprocess.run([sys.executable,str(ROOT/'desk/tests/t_mac_migration_2410.py'),'-v'],env=env,stdout=log,stderr=subprocess.STDOUT,cwd=ROOT)
+print((logs/'focused.log').read_text(),flush=True)
+with (logs/'native.log').open('wb') as log:
+    native=subprocess.run([sys.executable,str(ROOT/'desk/tests/macos_migration_pilot.py'),'--program',str(program),'--evidence',str(TMP/'migration-evidence')],stdout=log,stderr=subprocess.STDOUT,cwd=ROOT)
+print((logs/'native.log').read_text(),flush=True)
+focused.check_returncode();native.check_returncode()
 with archive.open('rb') as f:digest=hashlib.file_digest(f,'sha256').hexdigest()
 (TMP/'qualification.json').write_text(json.dumps({'archive':archive.name,'sha256':digest,'bytes':archive.stat().st_size,'native_macos':True,'scope':'Synthetic legacy migration, UI, admission, failed-start/retry and preservation; not physical permissions or authenticated agent proof.'},indent=2))
 print('MAC_MIGRATION_QUALIFIED',flush=True)
