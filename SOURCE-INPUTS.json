@@ -1,0 +1,21 @@
+{
+  "source": "selected small migration overlay, no ancestry",
+  "files": {
+    "desk/mac_migrate.py": "a203e403f1d9e85fdaaf95d6e2d37a833cd3ee244ae01c5dd38862f08380210e",
+    "desk/localharness/mac_migration.py": "0c74ac344728b3ffd2e6e1ef09bce2a08063503ba9e535f0a19ad4e93cda7259",
+    "desk/localharness/app_migration.py": "a395e79e5babeca3f0d7b7b2bd4f92ab56ff6da3303d100e18590996aa6416a2",
+    "desk/localharness/profile_paths.py": "c7eb15dc6624921aec18e2a95f77835344ebc69f7193eb873ee1fd442508f8ee",
+    "desk/python_app.py": "921c12b6e231f58f6afad15a4595e474c3d237235d75b79771a3d8bffe2d63b3",
+    "desk/resources/mac-migration.html": "663e077d418e38da51e5668397dfa08439d8ef0dcac062fd5d588a83d5df8a0f",
+    "desk/resources/HELENE-MAP.md": "915f1ce2109cb2448fb48936f8078110c1ef2cbbd2c3b5338baf295cbd4f7d4d",
+    "desk/installer/python_posix_bundle.py": "d74ea9f5c80e0374ee55df9cf135534578e5d780301fb8ad80d340dcc88bed64",
+    "desk/installer/macos_python_app.py": "b9f69b7a7cbbda35578888b6cb341dc0cccff4c0522aff93254b2a6b54825b04",
+    "desk/installer/overlay_mac_migration.py": "8faead20c8161d8cbe78615463f8e5148660b8b2be39b4af9edb286f1b70d420",
+    "desk/docs/MAC-PYTHON-MIGRATION.md": "50bdbc2f43efae10bc91eeb8e953cc86f964e2c7b58e3344c44acc1e6b333e75",
+    "desk/docs/MIGRATION-ENTRY.md": "0de8a7e3cdcecb0d00d43c101ebc0db623a9b686de258c150be89cea59153fbe",
+    "desk/tests/t_mac_migration_2410.py": "e616f6012d5ec10618411774b0c36fb25ea38684e659ca7453b5561ef79bb320",
+    "desk/tests/macos_migration_pilot.py": "ba03f1b1b959803d5ff9319523d032827d495f87c1895b2e3c62589029ea8456",
+    "desk/localharness/app_components.py": "ece44b39653a861df263a403e45081d103fa875805a3195fa90f1ea85795de22",
+    "desk/shell/icons/python-app.png": "c9f9f617290923cf280fa5493da88f54fdc09c8fcb009e90c2eff8f19aafc46d"
+  }
+}

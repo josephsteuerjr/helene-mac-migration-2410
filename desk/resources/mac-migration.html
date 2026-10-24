@@ -1,0 +1,32 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Перенос Hélène</title>
+<style>
+:root{color-scheme:dark;--bg:#1d1914;--fg:#e5d7b8;--muted:#bdad90;--line:#5c4e39;--accent:#e6b76e}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,sans-serif}main{max-width:760px;padding:30px 32px 36px;margin:auto}h1{font-size:29px;font-weight:550;line-height:1.2;margin:6px 0 18px}p{margin:10px 0 20px}.eyebrow{color:var(--accent);font-size:13px;letter-spacing:.08em}label{display:block;margin:19px 0 6px;font-weight:550}.row{display:flex;gap:8px}input[type=text]{width:100%;min-width:0;padding:10px 12px;background:#28221b;color:var(--fg);border:1px solid var(--line);border-radius:6px;font:inherit}button{padding:10px 15px;border:1px solid var(--line);border-radius:6px;background:#342b20;color:var(--fg);font:inherit;cursor:pointer;min-height:44px}button.primary{background:var(--accent);color:#20190e;border-color:var(--accent);font-weight:650}button:disabled{opacity:.5;cursor:default}small,.muted{color:var(--muted);font-size:14px}.check{display:flex;align-items:flex-start;gap:10px;font-weight:400}.check input{margin-top:5px;min-width:18px;min-height:18px}details{margin-top:20px}summary{cursor:pointer;color:var(--muted)}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}#status{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:24px;border-top:1px solid var(--line);padding-top:16px}#error{white-space:pre-wrap;overflow-wrap:anywhere;color:#ffc3a7;margin-top:12px}input:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px} @media(prefers-color-scheme:light){:root{color-scheme:light;--bg:#f7f2e8;--fg:#30281d;--muted:#665942;--line:#b9aa90;--accent:#e1af63}input[type=text]{background:#fffaf0}button{background:#ede3d2;color:var(--fg)}#error{color:#9b3217}}@media(max-width:600px){main{padding:22px 20px}.row{flex-wrap:wrap}.row input{flex-basis:100%}h1{font-size:25px}}
+</style></head><body><main>
+<div class="eyebrow">HÉLÈNE · PYTHON 2.0</div><h1>Продолжить жизнь в новой версии</h1>
+<p>Выберите прежнюю установку на этом Mac. Память, настройки и собственный код агента будут скопированы в отдельный дом. Старая папка останется на месте.</p>
+<label for="old">Прежняя Hélène</label><div class="row"><input id="old" type="text" placeholder="Папка Helene или Helene.app" autocomplete="off"><button data-choose="old">Выбрать…</button></div>
+<label for="data">Новый дом данных</label><div class="row"><input id="data" type="text" autocomplete="off"><button data-choose="data">Выбрать…</button></div><small>Вне обеих папок программы. Здесь будут память, резервная копия и сохранённый исполняемый код.</small>
+<details><summary>Старая папка скопирована с другого Mac?</summary><label for="former">Где она находилась прежде</label><input id="former" type="text" placeholder="/Users/прежний-пользователь/Applications/Helene" autocomplete="off"><small>Абсолютные пути внутри прежней папки будут перенаправлены в выбранную копию. Отдельно расположенные данные сначала перенесите и исправьте их пути в копии конфигурации.</small></details>
+<label class="check"><input id="closed" type="checkbox"><span>Я выбрал(а) «Завершить Hélène», отключил(а) её старый автозапуск/службу и не буду открывать старую версию во время переноса.</span></label>
+<div class="actions"><button id="prepare" class="primary">Подготовить перенос</button><button id="start" disabled>Открыть новую Hélène</button></div>
+<div id="status" role="status" aria-live="polite">Пока ничего не перенесено.</div><div id="error" role="alert"></div>
+<p class="muted">Подготовка не запускает агента. После открытия новая версия сама подтвердит окно, канал и выбранный код. Ошибка запуска не удалит старую установку: проверьте журнал и повторите открытие. Не запускайте две версии одновременно.</p>
+</main><script>
+const $=id=>document.getElementById(id);let busy=false,prepared=false,started=false;
+const call=(name,args={})=>window.__HELENE__.invoke(name,args);
+function controls(){ $('prepare').disabled=busy||prepared; $('start').disabled=busy||!prepared||started;for(const b of document.querySelectorAll('[data-choose]'))b.disabled=busy||prepared;for(const id of ['old','data','former','closed'])$(id).disabled=busy||prepared; }
+function paint(v){prepared=['prepared','new_app_started'].includes(v.state);started=v.state==='new_app_started';controls();
+const labels={not_prepared:'Пока ничего не перенесено.',preserving:'Копирование прервано или выполняется. Те же пути позволят продолжить.',prepared:'Профиль подготовлен. Можно открыть новую Hélène.',new_app_started:'Старт новой Hélène был подтверждён окном и владельцем процессов. Это запись успешного переноса, не проверка того, что приложение работает сейчас. Старая установка сохранена.'};
+$('status').textContent=labels[v.state]||v.state;
+if(v.progress?.stage==='preserving'&&busy)$('status').textContent='Сохраняю память и исполняемый код… '+(v.progress.files? v.progress.files+' файлов':v.progress.bytes?Math.round(v.progress.bytes/1048576)+' МБ':'');
+if(v.handoff?.state==='launch_requested'&&v.state!=='new_app_started')$('status').textContent+='\nЗапуск запрошен; подтверждения ещё нет. При ошибке закройте новое окно и повторите открытие.';
+if(v.handoff?.error)$('error').textContent=v.handoff.error;
+if(v.state==='new_app_started')$('start').disabled=true;
+}
+async function action(fn){busy=true;$('error').textContent='';controls();try{paint(await fn())}catch(e){$('error').textContent=String(e.message||e)}finally{busy=false;controls()}}
+for(const b of document.querySelectorAll('[data-choose]'))b.onclick=async()=>{try{const path=await call('migration_choose');if(path)$(b.dataset.choose).value=path}catch(e){$('error').textContent=String(e)}};
+$('prepare').onclick=()=>action(()=>call('migration_prepare',{old:$('old').value,data:$('data').value,former:$('former').value,closed:$('closed').checked}));
+$('start').onclick=()=>action(()=>call('migration_start'));
+(async()=>{try{const v=await call('migration_status');$('data').value=v.data_home||v.default_data||'';$('old').value=v.old_root||'';$('former').value=v.former||'';paint(v)}catch(e){$('error').textContent=String(e)}})();
+setInterval(()=>call('migration_status').then(paint).catch(e=>{$('error').textContent=String(e)}),1200);
+</script></body></html>
