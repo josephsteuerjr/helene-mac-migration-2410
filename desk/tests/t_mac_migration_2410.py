@@ -140,9 +140,10 @@ def paused(*args,**kwargs):
             time.sleep(120)
 essential_backup.inventory=paused
 with MigrationTests().platform():
-    app=MigrationWindow(new);app.serve()
-    try:app.invoke('migration_prepare',{'old':str(old),'data':str(data),'closed':True})
-    finally:app.close()
+    # The killed phase exercises preservation, not HTTP binding/DNS startup.
+    # Recovery below still invokes the actual new MigrationWindow consumer.
+    from localharness.mac_migration import Session
+    Session(new).prepare(old,data,closed=True)
 '''
             process=subprocess.Popen([sys.executable,'-c',driver,str(Path(__file__).resolve().parent),str(old),str(new),str(data),str(ready)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
             try:
@@ -245,6 +246,16 @@ with MigrationTests().platform():
             (old/'data/memory/link').symlink_to(outside,target_is_directory=True)
             with self.assertRaisesRegex(ValueError,'source link'):m.inspect(old,new,data)
             self.assertFalse(data.exists())
+
+    def test_zombie_observation_is_not_a_live_owner_but_denial_remains_unknown(self):
+        import psutil
+        process=Mock();process.uids.return_value=Mock(real=123)
+        process.exe.side_effect=psutil.AccessDenied(pid=123)
+        process.status.return_value=psutil.STATUS_ZOMBIE
+        with patch.object(m.sys,'platform','darwin'),patch.object(m.os,'getuid',return_value=123,create=True),patch.object(psutil,'pids',return_value=[123]),patch.object(psutil,'Process',return_value=process):
+            m.quiescent([Path('/selected')])
+            process.status.return_value=psutil.STATUS_SLEEPING
+            with self.assertRaisesRegex(RuntimeError,'closure is unverified'):m.quiescent([Path('/selected')])
 
     def test_start_timeout_is_explicit_without_killing_live_process(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -50,7 +50,12 @@ def quiescent(roots):
                 raise RuntimeError(f'Old installation still in use by process {pid}; Quit it and disable its login/service start, then retry')
         except psutil.NoSuchProcess:continue
         except psutil.AccessDenied as exc:
-            raise RuntimeError(f'Cannot inspect same-user process {pid}; old installation closure is unverified') from exc
+            facts={}
+            for field in ('name','status','ppid','exe','cwd'):
+                try:facts[field]=getattr(process,field)()
+                except (psutil.Error,OSError) as error:facts[field]=type(error).__name__
+            if facts.get('status')==psutil.STATUS_ZOMBIE:continue
+            raise RuntimeError(f'Cannot inspect process {pid}; old installation closure is unverified: {facts}') from exc
 
 
 def integrations_quiet(roots):
