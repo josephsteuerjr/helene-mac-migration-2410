@@ -24,6 +24,7 @@ def fixture(base):
     old=base/'Old Mac Helene';new=base/'New Helene';data=base/'New data'
     (old/'data/memory').mkdir(parents=True);(old/'tree').mkdir();new.mkdir()
     (old/'data/memory/entry.md').write_text('synthetic memory')
+    (old/'data/.desktop-owner.lock').write_bytes(b'')
     (old/'tree/agent.py').write_text('original=1\n')
     (old/'helene.json').write_text(json.dumps({'mode':'local','tree':'data','code':'tree','runner':'app/localharness/runner.py','setup_complete':False,'voice':{'speak':False}}))
     (new/'helene.json').write_text('{"setup_complete":false}')
@@ -129,7 +130,11 @@ import sys,time
 from pathlib import Path
 sys.path.insert(0,sys.argv[1])
 from t_mac_migration_2410 import MigrationTests,MigrationWindow
-from localharness import essential_backup
+from localharness import essential_backup,mac_migration
+from unittest.mock import patch
+from contextlib import nullcontext
+import os
+real_lease=mac_migration.lease
 old,new,data,ready=map(Path,sys.argv[2:])
 original=essential_backup.inventory
 def paused(*args,**kwargs):
@@ -143,7 +148,8 @@ with MigrationTests().platform():
     # The killed phase exercises preservation, not HTTP binding/DNS startup.
     # Recovery below still invokes the actual new MigrationWindow consumer.
     from localharness.mac_migration import Session
-    Session(new).prepare(old,data,closed=True)
+    with patch.object(mac_migration,'lease',real_lease) if os.name!='nt' else nullcontext():
+        Session(new).prepare(old,data,closed=True)
 '''
             process=subprocess.Popen([sys.executable,'-c',driver,str(Path(__file__).resolve().parent),str(old),str(new),str(data),str(ready)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
             try:
@@ -156,6 +162,13 @@ with MigrationTests().platform():
                 self.assertFalse((new/'helene.json').exists())
                 self.assertFalse((new/'python-migration.json').exists())
                 self.assertTrue(list(data.rglob('*.zip.tmp')))
+                if os.name!='nt':
+                    real_lease=m.lease
+                    with self.platform(),patch.object(m,'lease',real_lease):
+                        with self.assertRaisesRegex(RuntimeError,'Data is still owned'):
+                            m.Session(new).prepare(old,data,closed=True)
+                    self.assertFalse((new/'helene.json').exists(),'Competing wizard restored another owner configuration')
+                    self.assertFalse((new/'python-migration.json').exists())
                 process.kill();process.wait(15)
                 self.assertNotEqual(process.returncode,0)
             finally:

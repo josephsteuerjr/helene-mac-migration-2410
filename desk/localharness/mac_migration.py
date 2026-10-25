@@ -151,12 +151,14 @@ class Session:
     def prepare(self,old,data,*,closed=False,former=''):
         if closed is not True:raise ValueError('Explicitly confirm that the old application is Quit, not just its window closed')
         if not self.busy.acquire(blocking=False):raise RuntimeError('Migration is already in progress')
-        saved_template=None
+        saved_template=None;destination_owned=False;stack=ExitStack()
         try:
             if sys.platform!='darwin':raise RuntimeError('This migration must run on macOS')
             old,new,data,aliases,found,roots=inspect(old,self.new,data,former)
             from .python_platform import require_runtime
             require_runtime(new)
+            stack.enter_context(lease(new));destination_owned=True
+            quiescent({new})
             prior=load(new/'python-migration.json') if (new/'python-migration.json').is_file() else None
             if prior:
                 if (prior.get('old_root')!=str(old) or prior.get('new_root')!=str(new) or
@@ -175,40 +177,38 @@ class Session:
                 if template.get('setup_complete') is not False or (new/'data').exists() or (new/'agents').exists():
                     raise ValueError('Use a fresh unpacked Python application, not an existing agent home')
                 saved_template=template_path.read_bytes()
-            with ExitStack() as stack:
-                # Serialize other migration windows in the new destination too.
-                stack.enter_context(lease(new))
-                quiescent({new})
-                integrations_quiet(roots);quiescent(roots)
-                trees={Path(row['tree']) for row in found['agents']}
-                if prior:
-                    trees.update(Path(p) for p in prior.get('data_paths',[]) if Path(p).exists())
-                for tree in sorted(trees):stack.enter_context(lease(tree))
-                quiescent(roots)
-                if saved_template is not None:
-                    temporary=retained.with_suffix('.tmp')
-                    temporary.write_bytes(saved_template);temporary.replace(retained)
-                # Configs from failed copies are recoverable, not silently replaced.
-                app_migration.retain_attempt_configs(new,prior or {'id':'fresh-template','state':'template'})
-                self.progress={'stage':'preserving'}
-                note=app_migration.prepare(old,new,data,old_service_stopped=True,
-                    progress=self.progress.update,reuse=prior,preserve_voice=False,
-                    path_aliases=aliases,copy_external=True)
-                try:quiescent(roots)
-                except Exception:
-                    note['state']='preserving';app_migration.write_note(new,note)
-                    raise
-                self.progress={'stage':'prepared'}
+            integrations_quiet(roots);quiescent(roots)
+            trees={Path(row['tree']) for row in found['agents']}
+            if prior:
+                trees.update(Path(p) for p in prior.get('data_paths',[]) if Path(p).exists())
+            for tree in sorted(trees):stack.enter_context(lease(tree))
+            quiescent(roots)
+            if saved_template is not None:
+                temporary=retained.with_suffix('.tmp')
+                temporary.write_bytes(saved_template);temporary.replace(retained)
+            # Configs from failed copies are recoverable, not silently replaced.
+            app_migration.retain_attempt_configs(new,prior or {'id':'fresh-template','state':'template'})
+            self.progress={'stage':'preserving'}
+            note=app_migration.prepare(old,new,data,old_service_stopped=True,
+                progress=self.progress.update,reuse=prior,preserve_voice=False,
+                path_aliases=aliases,copy_external=True)
+            try:quiescent(roots)
+            except Exception:
+                note['state']='preserving';app_migration.write_note(new,note)
+                raise
+            self.progress={'stage':'prepared'}
             self.record('prepared',old_root=str(old),data_home=str(data))
             return self.status()
         except Exception as exc:
-            if saved_template is not None and not (self.new/'helene.json').exists():
+            if destination_owned and saved_template is not None and not (self.new/'helene.json').exists():
                 restored=self.new/'.helene-template-restore.tmp'
                 restored.write_bytes(saved_template)
                 restored.replace(self.new/'helene.json')
-            self.record('failed',error=str(exc))
+            if destination_owned:self.record('failed',error=str(exc))
             raise
-        finally:self.busy.release()
+        finally:
+            stack.close()
+            self.busy.release()
 
     def record(self,state,**details):
         value={'format':'helene-mac-migration-status.v1','state':state,**details}

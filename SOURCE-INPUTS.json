@@ -2,7 +2,7 @@
   "source": "selected small migration overlay, no ancestry",
   "files": {
     "desk/mac_migrate.py": "a203e403f1d9e85fdaaf95d6e2d37a833cd3ee244ae01c5dd38862f08380210e",
-    "desk/localharness/mac_migration.py": "cee139783f2c8ee3cf992467eb6c0e8f66b566eff7c1ec34f10d02799d1fa2f4",
+    "desk/localharness/mac_migration.py": "f8803ae22f022483143ad8e8bbbffef31924a19cab21745a644d16762ac7c4b2",
     "desk/localharness/app_migration.py": "a395e79e5babeca3f0d7b7b2bd4f92ab56ff6da3303d100e18590996aa6416a2",
     "desk/localharness/profile_paths.py": "c7eb15dc6624921aec18e2a95f77835344ebc69f7193eb873ee1fd442508f8ee",
     "desk/python_app.py": "921c12b6e231f58f6afad15a4595e474c3d237235d75b79771a3d8bffe2d63b3",
@@ -13,7 +13,7 @@
     "desk/installer/overlay_mac_migration.py": "8faead20c8161d8cbe78615463f8e5148660b8b2be39b4af9edb286f1b70d420",
     "desk/docs/MAC-PYTHON-MIGRATION.md": "5d839d91f2711875811b5bab4fc3beb6141f96e3065f08bba5c06aa2afbea605",
     "desk/docs/MIGRATION-ENTRY.md": "0de8a7e3cdcecb0d00d43c101ebc0db623a9b686de258c150be89cea59153fbe",
-    "desk/tests/t_mac_migration_2410.py": "0fff470c321c9e9a3585975ce920d22cb6cc63bf27edb973866480db3e146a06",
+    "desk/tests/t_mac_migration_2410.py": "1c730d9f277ade56bed26414cec4e8e2997ca3504d6477db870577e65931ccd9",
     "desk/tests/macos_migration_pilot.py": "ba03f1b1b959803d5ff9319523d032827d495f87c1895b2e3c62589029ea8456",
     "desk/localharness/app_components.py": "ece44b39653a861df263a403e45081d103fa875805a3195fa90f1ea85795de22",
     "desk/shell/icons/python-app.png": "c9f9f617290923cf280fa5493da88f54fdc09c8fcb009e90c2eff8f19aafc46d"
