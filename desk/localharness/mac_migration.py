@@ -43,7 +43,11 @@ def quiescent(roots):
         if pid==os.getpid():continue
         try:
             process=psutil.Process(pid)
-            if process.uids().real!=uid:continue
+            ids=process.uids()
+            # setuid/elevated processes belong to another effective principal;
+            # macOS denies their cwd even with our real UID (e.g. runner sudo).
+            # Registered old system jobs are checked through launchd separately.
+            if ids.real!=uid or ids.effective!=uid:continue
             values=[process.exe(),process.cwd(),*process.cmdline()]
             values += [v.split('=',1)[1] for v in values if v.startswith('--') and '=' in v]
             if any(references(v,roots) for v in values):

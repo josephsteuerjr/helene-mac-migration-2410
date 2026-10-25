@@ -29,7 +29,11 @@ both copies simultaneously: they still contain the same remote account/session
 credentials. The importer does not rotate credentials or decide which account
 should be used. Old Rust versions did not cooperate with the Python flock: a
 final process census detects reopening, but is not an adversarial exclusion
-mechanism against a manually reopened legacy application.
+mechanism against a manually reopened legacy application. This census covers
+processes with this user's real AND effective UID; elevated/setuid processes
+are outside that principal and loaded system jobs are checked via launchd.
+Manually elevated old copies must also be Quit by the user. A denied ordinary
+same-principal process remains unverified, not silently treated as absent.
 
 ## Copied old Mac folders
 

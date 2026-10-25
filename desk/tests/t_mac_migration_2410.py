@@ -249,13 +249,21 @@ with MigrationTests().platform():
 
     def test_zombie_observation_is_not_a_live_owner_but_denial_remains_unknown(self):
         import psutil
-        process=Mock();process.uids.return_value=Mock(real=123)
+        process=Mock();process.uids.return_value=Mock(real=123,effective=123)
         process.exe.side_effect=psutil.AccessDenied(pid=123)
         process.status.return_value=psutil.STATUS_ZOMBIE
         with patch.object(m.sys,'platform','darwin'),patch.object(m.os,'getuid',return_value=123,create=True),patch.object(psutil,'pids',return_value=[123]),patch.object(psutil,'Process',return_value=process):
             m.quiescent([Path('/selected')])
             process.status.return_value=psutil.STATUS_SLEEPING
             with self.assertRaisesRegex(RuntimeError,'closure is unverified'):m.quiescent([Path('/selected')])
+
+    def test_setuid_process_is_outside_same_effective_principal_census(self):
+        import psutil
+        process=Mock();process.uids.return_value=Mock(real=123,effective=0)
+        process.exe.side_effect=psutil.AccessDenied(pid=123)
+        with patch.object(m.sys,'platform','darwin'),patch.object(m.os,'getuid',return_value=123,create=True),patch.object(psutil,'pids',return_value=[123]),patch.object(psutil,'Process',return_value=process):
+            m.quiescent([Path('/selected')])
+        process.exe.assert_not_called()
 
     def test_start_timeout_is_explicit_without_killing_live_process(self):
         with tempfile.TemporaryDirectory() as folder:
