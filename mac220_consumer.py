@@ -210,15 +210,23 @@ def main():
                 page.on('pageerror', lambda error:errors.append(str(error)))
                 from urllib.parse import urlsplit
                 page.on('requestfailed', lambda request:failed_requests.append({'path':urlsplit(request.url).path,'reason':request.failure}))
-                page.goto(current['origin'], wait_until='domcontentloaded')
-                page.locator('[data-page="now"] .now .now-idle').wait_for(state='visible', timeout=30000)
-                idle = page.locator('[data-page="now"] .now-idle').inner_text()
-                assert idle.strip() == 'Подключение…', idle  # synthetic Stop deliberately leaves channel disconnected
-                page.get_by_text('Здесь появятся действия и результаты', exact=True).wait_for(state='visible')
-                page.screenshot(path=str(evidence/(label+'-now-browser.png')))
-                dump(evidence/(label+'-browser-observation.json'), {'pageerrors':errors,'failed_requests':failed_requests,'idle':idle,'screenshots_visually_judged':False,'expected_disconnected_channel':True})
-                assert not errors, errors
-                browser.close()
+                idle = None
+                try:
+                    page.goto(current['origin'], wait_until='domcontentloaded')
+                    page.locator('[data-page="now"] .now .now-idle').wait_for(state='visible', timeout=30000)
+                    idle = page.locator('[data-page="now"] .now-idle').inner_text()
+                    assert idle.strip() == 'Подключение…', idle  # synthetic Stop deliberately leaves channel disconnected
+                    page.get_by_text('Здесь появятся действия и результаты', exact=True).wait_for(state='visible')
+                    assert not errors, errors
+                finally:
+                    # Retain failure evidence too. Never save page HTML or bridge
+                    # configuration: its script contains the synthetic control token.
+                    page.screenshot(path=str(evidence/(label+'-now-browser.png')))
+                    body = page.locator('body').inner_text()
+                    state = page.evaluate("""() => ({pages:[...document.querySelectorAll('[data-page]')].map(x=>({id:x.dataset.page,hidden:x.hidden})),needs_local_setup:window.DESK_CONFIG_OVERRIDE?.needs_local_setup,shell:window.__HELENE__?.shell})""")
+                    dump(evidence/(label+'-browser-observation.json'), {'pageerrors':errors,'failed_requests':failed_requests,'idle':idle,'body_text':body,'state':state,'screenshots_visually_judged':False,'expected_disconnected_channel':True})
+                    capture(current, label+'-native-after-browser')
+                    browser.close()
             result['steps'][label].update(passed=True, admission_before_old_exit=True,
                 version='2.2.0', profile_git_exact=True, native_window_observed=True,
                 configured_now_rendered_browser=True, screenshots_visually_judged=False, ended_at=time.time())
