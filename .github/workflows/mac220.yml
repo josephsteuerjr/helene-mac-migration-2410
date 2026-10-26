@@ -1,0 +1,60 @@
+name: Native Mac 2.2 portable update qualification
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_tag:
+        description: Authorized sanitized candidate release in this build repository
+        required: true
+        type: string
+      candidate_name:
+        description: Exact Mac portable ZIP asset name
+        required: true
+        type: string
+      candidate_sha256:
+        description: Parent-verified SHA256 of that exact ZIP
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      PYTHONUTF8: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Driver-only dependencies; reuse application runtime unchanged
+        run: |
+          test "$(uname -m)" = arm64
+          python3 -m pip install psutil playwright pyobjc-framework-Quartz
+          python3 -m playwright install chromium
+      - name: Fetch exact public old and authorized candidate archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_TAG: ${{ inputs.candidate_tag }}
+          CANDIDATE_NAME: ${{ inputs.candidate_name }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha256 }}
+        run: |
+          python3 mac220_prepare.py validate-inputs
+          mkdir -p "$RUNNER_TEMP/mac220-input/old" "$RUNNER_TEMP/mac220-input/new"
+          gh release download v2.1.1 --repo josephsteuerjr/praxis --pattern Helene-2.1.1-macos-arm64.zip --dir "$RUNNER_TEMP/mac220-input/old"
+          gh release download "$CANDIDATE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$CANDIDATE_NAME" --dir "$RUNNER_TEMP/mac220-input/new"
+          python3 mac220_prepare.py extract
+      - name: Actual Cocoa entry, normal update bridge, failed-next rollback
+        env:
+          CANDIDATE_NAME: ${{ inputs.candidate_name }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha256 }}
+        run: python3 mac220_consumer.py --base "$RUNNER_TEMP/mac220-input/old/Helene-2.1.1-macos-arm64.zip" --candidate "$RUNNER_TEMP/mac220-input/new/$CANDIDATE_NAME" --candidate-sha "$CANDIDATE_SHA" --work "$RUNNER_TEMP/mac220-fixture" --evidence "$RUNNER_TEMP/mac220-evidence"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mac220-native-${{ github.sha }}
+          retention-days: 7
+          if-no-files-found: error
+          path: ${{ runner.temp }}/mac220-evidence/
