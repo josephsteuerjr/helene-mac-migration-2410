@@ -215,8 +215,8 @@ def main():
                     page.goto(current['origin'], wait_until='domcontentloaded')
                     page.locator('[data-page="now"] .now .now-idle').wait_for(state='visible', timeout=30000)
                     idle = page.locator('[data-page="now"] .now-idle').inner_text()
-                    assert idle.strip() == 'РџРѕРґРєР»СЋС‡РµРЅРёРµвЂ¦', idle  # synthetic Stop deliberately leaves channel disconnected
-                    page.get_by_text('Р—РґРµСЃСЊ РїРѕСЏРІСЏС‚СЃСЏ РґРµР№СЃС‚РІРёСЏ Рё СЂРµР·СѓР»СЊС‚Р°С‚С‹', exact=True).wait_for(state='visible')
+                    assert idle.strip() == 'Подключение…', idle  # synthetic Stop deliberately leaves channel disconnected
+                    page.get_by_text('Здесь появятся действия и результаты', exact=True).wait_for(state='visible')
                     assert not errors, errors
                 finally:
                     # Retain failure evidence too. Never save page HTML or bridge
