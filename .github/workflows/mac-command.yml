@@ -1,0 +1,22 @@
+name: Native Mac command custody
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  command:
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.14'}
+      - name: Real private-group completion and Stop
+        run: python3 command_check.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: command-custody-proof
+          path: |
+            command-proof.json
+            command-tests.log
