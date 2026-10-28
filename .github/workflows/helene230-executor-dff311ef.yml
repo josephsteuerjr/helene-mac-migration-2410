@@ -1,0 +1,35 @@
+name: Helene native Mac executor preparation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: macos-15
+    timeout-minutes: 25
+    env:
+      PYTHONUTF8: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+      - name: Native pinned runtime and declared dependency capture only
+        run: |
+          test "$(uname -m)" = arm64
+          python3 qualifications/dff311ef/mac_executor_probe.py --work "$RUNNER_TEMP/executor-probe" --out "$RUNNER_TEMP/executor-capture"
+      - name: Retain hashes, overlay and verification wheel closure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: helene230-executor-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: ${{ runner.temp }}/executor-capture/
