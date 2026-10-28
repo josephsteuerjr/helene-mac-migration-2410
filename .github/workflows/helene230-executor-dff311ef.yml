@@ -24,6 +24,7 @@ jobs:
       - name: Native pinned runtime and declared dependency capture only
         run: |
           test "$(uname -m)" = arm64
+          python3 -m unittest discover -s qualifications/dff311ef -p test_executor_probe_api.py -q
           python3 qualifications/dff311ef/mac_executor_probe.py --work "$RUNNER_TEMP/executor-probe" --out "$RUNNER_TEMP/executor-capture"
       - name: Retain hashes, overlay and verification wheel closure
         if: always()

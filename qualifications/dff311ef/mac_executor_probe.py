@@ -58,7 +58,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 k=Ed25519PrivateKey.generate();sig=k.sign(b"synthetic-capture");k.public_key().verify(sig,b"synthetic-capture")
 spec=importlib.util.spec_from_file_location("capture",sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 from pathlib import Path
-Path(sys.argv[2]).write_text(json.dumps(m.capture_executor(),sort_keys=True),encoding="utf8")
+Path(sys.argv[2]).write_text(json.dumps(m.executor_lock(),sort_keys=True),encoding="utf8")
 '''
     run(py,'-c',capture,Path(__file__).with_name('capture_executor_source.py').resolve(),(a.out/'executor-darwin.json').resolve())
     # Resolve once above; download those exact versions, never a second resolution.
