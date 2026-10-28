@@ -1,19 +1,6 @@
-name: Native Mac 2.2.1 portable update qualification
+name: Native setup 2.2.11
 on:
   workflow_dispatch:
-    inputs:
-      candidate_tag:
-        description: Authorized sanitized candidate release in this build repository
-        required: true
-        type: string
-      candidate_name:
-        description: Exact Mac portable ZIP asset name
-        required: true
-        type: string
-      candidate_sha256:
-        description: Parent-verified SHA256 of that exact ZIP
-        required: true
-        type: string
 permissions:
   contents: read
 jobs:
@@ -22,39 +9,29 @@ jobs:
     timeout-minutes: 20
     env:
       PYTHONUTF8: '1'
-      PYTHONDONTWRITEBYTECODE: '1'
       PYTHONUNBUFFERED: '1'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.14'
-      - name: Driver-only dependencies; reuse application runtime unchanged
-        run: |
-          test "$(uname -m)" = arm64
-          python3 -m pip install psutil playwright pyobjc-framework-Quartz
-          python3 -m playwright install chromium
-      - name: Fetch exact public old and authorized candidate archives
+        with: {python-version: '3.14'}
+      - name: Driver dependencies
+        run: python3 -m pip install psutil pyobjc-framework-Quartz
+      - name: Download retained base and exact byte delta
         env:
           GH_TOKEN: ${{ github.token }}
-          CANDIDATE_TAG: ${{ inputs.candidate_tag }}
-          CANDIDATE_NAME: ${{ inputs.candidate_name }}
-          CANDIDATE_SHA: ${{ inputs.candidate_sha256 }}
         run: |
-          python3 mac221_prepare.py validate-inputs
-          mkdir -p "$RUNNER_TEMP/mac221-input/old" "$RUNNER_TEMP/mac221-input/new"
-          gh release download v2.2.0 --repo josephsteuerjr/praxis --pattern Helene-2.2.0-macos-arm64.zip --dir "$RUNNER_TEMP/mac221-input/old"
-          gh release download "$CANDIDATE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$CANDIDATE_NAME" --dir "$RUNNER_TEMP/mac221-input/new"
-          python3 mac221_prepare.py extract
-      - name: Actual Cocoa entry, normal update bridge, failed-next rollback
-        env:
-          CANDIDATE_NAME: ${{ inputs.candidate_name }}
-          CANDIDATE_SHA: ${{ inputs.candidate_sha256 }}
-        run: python3 mac221_consumer.py --base "$RUNNER_TEMP/mac221-input/old/Helene-2.2.0-macos-arm64.zip" --candidate "$RUNNER_TEMP/mac221-input/new/$CANDIDATE_NAME" --candidate-sha "$CANDIDATE_SHA" --work "$RUNNER_TEMP/mac221-fixture" --evidence "$RUNNER_TEMP/mac221-evidence"
+          mkdir -p "$RUNNER_TEMP/input211"
+          gh release download qualification-210-r3-2710 --repo "$GITHUB_REPOSITORY" --pattern Helene-2.2.10-macos-arm64.zip --dir "$RUNNER_TEMP/input211"
+          gh release download qualification-setup211-2810 --repo "$GITHUB_REPOSITORY" --pattern macos-delta.zip --dir "$RUNNER_TEMP/input211"
+      - name: Reconstruct and verify final archive
+        run: python3 assemble_mac_input.py --base "$RUNNER_TEMP/input211/Helene-2.2.10-macos-arm64.zip" --delta "$RUNNER_TEMP/input211/macos-delta.zip" --output "$RUNNER_TEMP/input211/Helene-2.2.11-macos-arm64.zip"
+      - name: Real Cocoa first launch and fresh installation
+        run: |
+          SHA=$(python3 -c 'import json;print(json.load(open("macos-delta.json"))["sha256"])')
+          python3 native_setup_smoke.py --archive "$RUNNER_TEMP/input211/Helene-2.2.11-macos-arm64.zip" --sha256 "$SHA" --work "$RUNNER_TEMP/work211" --evidence "$RUNNER_TEMP/evidence211"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: mac221-native-${{ github.sha }}
-          retention-days: 7
-          if-no-files-found: error
-          path: ${{ runner.temp }}/mac221-evidence/
+          name: native-setup211-${{ github.sha }}
+          path: ${{ runner.temp }}/evidence211
