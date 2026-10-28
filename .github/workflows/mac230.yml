@@ -1,0 +1,87 @@
+name: Native Hélène 2.3 RC acceptance (public standard Mac)
+on:
+  workflow_dispatch:
+    inputs:
+      manifest_url:
+        description: Parent-published sanitized exact-input JSON URL (HTTPS)
+        required: true
+        type: string
+      manifest_sha256:
+        description: SHA256 of the exact parent-frozen JSON bytes
+        required: true
+        type: string
+      mode:
+        description: Capture executor first, then bind/repackage and run qualification
+        required: true
+        default: qualify
+        type: choice
+        options: [capture-executor, qualify]
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: macos-15
+    timeout-minutes: 180
+    env:
+      PYTHONUTF8: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+      - name: Driver-only tools (never replace the product runtime)
+        run: |
+          test "$(uname -m)" = arm64
+          python3 -m pip install psutil playwright pyobjc-framework-Quartz
+          python3 -m playwright install chromium
+          python3 -m unittest -v test_mac230_harness
+      - name: Resolve exact parent input (no branch/latest guessing)
+        id: prepare
+        env:
+          INPUT_URL: ${{ inputs.manifest_url }}
+          INPUT_SHA: ${{ inputs.manifest_sha256 }}
+        run: |
+          python3 - <<'PY'
+          import os, urllib.request
+          from pathlib import Path
+          from mac230_prepare import https_url, check_archive
+          target=Path(os.environ['RUNNER_TEMP'])/'mac230-input.json'
+          request=urllib.request.Request(https_url(os.environ['INPUT_URL']))
+          class Redirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  https_url(newurl)
+                  return super().redirect_request(req, fp, code, msg, headers, newurl)
+          with urllib.request.build_opener(Redirect()).open(request,timeout=30) as response:
+              raw=response.read(1024*1024+1)
+          if len(raw)>1024*1024:raise ValueError('Input manifest too large')
+          target.write_bytes(raw)
+          check_archive(target,os.environ['INPUT_SHA'])
+          evidence=Path(os.environ['RUNNER_TEMP'])/'mac230-evidence'
+          evidence.mkdir(exist_ok=False)
+          (evidence/'input-manifest.json').write_bytes(raw)
+          PY
+          python3 mac230_prepare.py --manifest "$RUNNER_TEMP/mac230-input.json" --work "$RUNNER_TEMP/mac230" --fetch
+          cp "$RUNNER_TEMP/mac230/input-receipt.json" "$RUNNER_TEMP/mac230-evidence/input-receipt.json"
+      - name: Exact incoming runtime executor capture (not full PASS)
+        if: inputs.mode == 'capture-executor'
+        run: python3 mac230_full.py capture-executor --manifest "$RUNNER_TEMP/mac230-input.json" --work "$RUNNER_TEMP/mac230" --evidence "$RUNNER_TEMP/mac230-evidence/full"
+      - name: Full applicable manifest/collected/executed lanes
+        id: full
+        if: inputs.mode == 'qualify'
+        run: python3 mac230_full.py run --manifest "$RUNNER_TEMP/mac230-input.json" --work "$RUNNER_TEMP/mac230" --evidence "$RUNNER_TEMP/mac230-evidence/full"
+      - name: Actual Cocoa old-to-RC ordinary update, detach/rejoin, rollback, Exit
+        if: always() && inputs.mode == 'qualify' && steps.prepare.outcome == 'success'
+        run: python3 mac230_consumer.py --manifest "$RUNNER_TEMP/mac230-input.json" --work "$RUNNER_TEMP/mac230" --evidence "$RUNNER_TEMP/mac230-evidence/native"
+      - name: Retain exact negative and positive observations (no control descriptors)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mac230-${{ inputs.mode }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: ${{ runner.temp }}/mac230-evidence/
