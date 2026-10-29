@@ -238,6 +238,15 @@ class HarnessTests(unittest.TestCase):
         self.assertFalse(set(env)&{'OPENAI_API_KEY','ANTHROPIC_API_KEY','HELENE_CONFIG','AGENTS'})
         self.assertEqual(env['HOME'],str(self.root))
 
+    def test_configure_selects_channel_entry_file_not_application_directory(self):
+        root=self.root/'program';(root/'app').mkdir(parents=True)
+        entry=root/'app/deskapp.py';entry.write_text('# synthetic channel entry\n')
+        consumer.configure(root,self.root/'profile',self.root/'home','https://example.invalid/feed')
+        config=json.loads((root/'helene.json').read_text(encoding='utf8'))
+        self.assertEqual(Path(config['app']),entry)
+        self.assertTrue(Path(config['app']).is_file())
+        self.assertFalse(config['setup_complete'])
+
     def test_git_facts_preserve_workspace_status_without_claiming_unchanged_upstream_code(self):
         code=self.root/'code';code.mkdir();(code/'agent.py').write_text('OLD=True\n')
         install_git_fixture(code);before=repository_facts(code)

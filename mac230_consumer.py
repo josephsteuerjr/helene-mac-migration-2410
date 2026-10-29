@@ -271,7 +271,7 @@ def configure(root, profile, home, feed, code=None):
     (profile/'soul/identity.md').write_text('Synthetic identity, not a real agent\n',encoding='utf8')
     config = read(root/'helene.json')
     config.update(tree=str(profile),code=str(code or root/'tree'),python=str(root/'runtime/bin/python3'),
-        runner=str(root/'app/localharness/runner.py'),app=str(root/'app'),
+        runner=str(root/'app/localharness/runner.py'),app=str(root/'app/deskapp.py'),
         setup_complete=False,relay={'enabled':False},voice={'speak':False},
         update={'url':feed},fixture_custom={'synthetic':True,'retained':True})
     # Actual old config may contain harmless template model entries. Do not
