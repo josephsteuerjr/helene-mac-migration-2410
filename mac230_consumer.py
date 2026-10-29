@@ -42,8 +42,12 @@ def invoke(row, command, args=None):
         data=json.dumps({'command':command,'args':args or {}}).encode(),
         headers={'Content-Type':'application/json','Origin':row['origin'],
                  'X-Helene-Window':row['token']})
-    with urllib.request.urlopen(req, timeout=180) as response:
-        return json.load(response)['result']
+    try:
+        with urllib.request.urlopen(req, timeout=180) as response:
+            return json.load(response)['result']
+    except urllib.error.HTTPError as exc:
+        detail=exc.read().decode('utf8','replace').replace(row['token'],'[control token withheld]')
+        raise RuntimeError(command+' HTTP '+str(exc.code)+': '+detail) from exc
 
 
 def rpc(row, action, args=None):
