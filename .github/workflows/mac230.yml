@@ -15,7 +15,7 @@ on:
         required: true
         default: qualify
         type: choice
-        options: [capture-executor, qualify]
+        options: [capture-executor, qualify, native]
 permissions:
   contents: read
 jobs:
@@ -75,7 +75,7 @@ jobs:
         if: inputs.mode == 'qualify'
         run: python3 mac230_full.py run --manifest "$RUNNER_TEMP/mac230-input.json" --work "$RUNNER_TEMP/mac230" --evidence "$RUNNER_TEMP/mac230-evidence/full"
       - name: Actual Cocoa old-to-RC ordinary update, detach/rejoin, rollback, Exit
-        if: always() && inputs.mode == 'qualify' && steps.prepare.outcome == 'success'
+        if: always() && (inputs.mode == 'qualify' || inputs.mode == 'native') && steps.prepare.outcome == 'success'
         run: python3 mac230_consumer.py --manifest "$RUNNER_TEMP/mac230-input.json" --work "$RUNNER_TEMP/mac230" --evidence "$RUNNER_TEMP/mac230-evidence/native"
       - name: Retain exact negative and positive observations (no control descriptors)
         uses: actions/upload-artifact@v4
